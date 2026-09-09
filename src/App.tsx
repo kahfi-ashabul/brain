@@ -1,19 +1,24 @@
 import { useState, useCallback } from 'react';
-import { Plus, Zap, Brain, Keyboard, BarChart3, Activity, Target, Clock } from 'lucide-react';
+import { Plus, Zap, Brain, Keyboard, BarChart3, Activity, Target, Clock, Swords, Trophy } from 'lucide-react';
 import { useTheme, useHighScores, useStats } from '@/hooks/useApp';
+import { AuthProvider, useAuth } from '@/lib/auth';
+import { getRankName } from '@/lib/types';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import GameCard from '@/components/GameCard';
 import AdBanner from '@/components/AdBanner';
 import InfoModal from '@/components/InfoModal';
+import OnboardingModal from '@/components/OnboardingModal';
+import DuelView from '@/components/DuelView';
 import PauliGame from '@/components/PauliGame';
 import ReflexGame from '@/components/ReflexGame';
 import MemoryGame from '@/components/MemoryGame';
 import TypingGame from '@/components/TypingGame';
 
-type View = 'dashboard' | 'pauli' | 'reflex' | 'memory' | 'typing';
+type View = 'dashboard' | 'pauli' | 'reflex' | 'memory' | 'typing' | 'duel';
 
-export default function App() {
+function AppContent() {
+  const { user } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const { getScore, saveScore } = useHighScores();
   const { getStats, saveStats } = useStats();
@@ -69,8 +74,11 @@ export default function App() {
     },
   ];
 
+  const rank = user ? getRankName(user.rating) : null;
+
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col">
+      <OnboardingModal />
       <Header theme={theme} onToggleTheme={toggleTheme} onNavigate={navigate} onOpenInfo={openInfo} />
 
       <main className="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 py-6 sm:py-10">
@@ -82,18 +90,66 @@ export default function App() {
                 <Activity size={14} /> Train Your Brain
               </div>
               <h1 className="text-3xl sm:text-5xl font-bold text-slate-800 dark:text-white mb-4 text-balance">
-                Speed & Cognitive Tests
+                Kei — Cognitive & Speed Lab
               </h1>
               <p className="text-slate-500 dark:text-slate-400 max-w-xl mx-auto text-balance">
                 Four science-inspired brain games. Test your mental math, reaction time, memory, and typing speed —
-                all in one place. No sign-up required.
+                then challenge opponents in real-time 1v1 duels.
               </p>
+              {user && (
+                <div className="mt-6 inline-flex items-center gap-4 px-5 py-3 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-sm">
+                  <div className="flex items-center gap-2">
+                    <span className="text-2xl">{user.avatar}</span>
+                    <div className="text-left">
+                      <div className="text-sm font-bold text-slate-800 dark:text-white">{user.nickname}</div>
+                      <div className={`text-xs ${rank?.color}`}>{rank?.name}</div>
+                    </div>
+                  </div>
+                  <div className="h-8 w-px bg-slate-200 dark:bg-slate-700" />
+                  <div className="text-left">
+                    <div className="text-lg font-bold text-sky-500">{user.rating}</div>
+                    <div className="text-[10px] text-slate-400">Rating</div>
+                  </div>
+                  <div className="h-8 w-px bg-slate-200 dark:bg-slate-700" />
+                  <div className="text-left">
+                    <div className="text-lg font-bold text-slate-800 dark:text-white">{user.gamesPlayed}</div>
+                    <div className="text-[10px] text-slate-400">Games</div>
+                  </div>
+                  <div className="h-8 w-px bg-slate-200 dark:bg-slate-700" />
+                  <div className="text-left">
+                    <div className="text-lg font-bold text-emerald-500">{user.wins}</div>
+                    <div className="text-[10px] text-slate-400">Wins</div>
+                  </div>
+                </div>
+              )}
             </section>
 
             {/* Leaderboard Ad */}
             <div className="mb-10">
               <AdBanner variant="leaderboard" />
             </div>
+
+            {/* Duel banner */}
+            <section className="mb-10">
+              <button
+                onClick={() => navigate('duel')}
+                className="w-full group relative overflow-hidden rounded-2xl bg-gradient-to-r from-rose-500 via-orange-500 to-amber-500 p-6 sm:p-8 text-left hover:shadow-2xl hover:shadow-rose-500/20 transition-all"
+              >
+                <div className="absolute -top-16 -right-16 w-48 h-48 rounded-full bg-white/10 group-hover:scale-125 transition-transform duration-500" />
+                <div className="relative flex items-center gap-4">
+                  <div className="w-14 h-14 rounded-2xl bg-white/20 flex items-center justify-center backdrop-blur-sm">
+                    <Swords size={28} className="text-white" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="text-xl sm:text-2xl font-bold text-white mb-1">Challenge a Friend to a 1v1 Duel</h3>
+                    <p className="text-sm text-white/80">Real-time multiplayer matches with ELO rating. Create a room or find a random opponent.</p>
+                  </div>
+                  <div className="hidden sm:flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white/20 text-white font-bold text-sm backdrop-blur-sm group-hover:gap-3 transition-all">
+                    Play Now
+                  </div>
+                </div>
+              </button>
+            </section>
 
             {/* Stats Bar */}
             <section className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-10">
@@ -138,8 +194,8 @@ export default function App() {
                   or legal worker.
                 </p>
                 <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
-                  BrainFlex brings all these tests together in a fast, clean, free platform. Play daily to track your
-                  progress and keep your mind sharp. Your scores are saved locally on your device — no account needed.
+                  Kei brings all these tests together in a fast, clean, free platform with competitive multiplayer
+                  duels. Play daily to track your progress, climb the ELO ladder, and keep your mind sharp.
                 </p>
               </div>
               <div className="space-y-4">
@@ -154,6 +210,7 @@ export default function App() {
                     <li>• Try different typing categories to broaden vocabulary</li>
                     <li>• Aim for consistent reaction times, not just your fastest</li>
                     <li>• Try the 10-minute Pauli test to map your fatigue curve</li>
+                    <li>• Challenge a friend to a duel to test your skills under pressure</li>
                   </ul>
                 </div>
               </div>
@@ -161,7 +218,11 @@ export default function App() {
           </div>
         )}
 
-        {view !== 'dashboard' && (
+        {view === 'duel' && (
+          <DuelView onBack={() => navigate('dashboard')} />
+        )}
+
+        {view !== 'dashboard' && view !== 'duel' && (
           <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-6 animate-fade-in">
             <div>
               {view === 'pauli' && (
@@ -209,7 +270,7 @@ export default function App() {
       </main>
 
       {/* Mobile back button */}
-      {view !== 'dashboard' && (
+      {view !== 'dashboard' && view !== 'duel' && (
         <div className="px-4 pb-6 lg:hidden">
           <button
             onClick={() => navigate('dashboard')}
@@ -223,6 +284,14 @@ export default function App() {
       <Footer onOpenInfo={openInfo} />
       <InfoModal type={infoModal} onClose={closeInfo} />
     </div>
+  );
+}
+
+export default function App() {
+  return (
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
   );
 }
 
